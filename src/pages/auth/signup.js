@@ -1,14 +1,15 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import React, { useContext, useRef, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-simple-toast';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { push } from '../../utils/navigationUtils';
+import { push, resetandNavigate } from '../../utils/navigationUtils';
+import { AuthContext } from '../../context/authContext';
 
 const { width, height } = Dimensions.get('window');
 
 const signup = () => {
-
+    const { signup } = useContext(AuthContext)
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
@@ -16,6 +17,7 @@ const signup = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+     const [loading, setLoading] = useState(false);
 
     const nameInputRef = useRef(null);
     const emailInputRef = useRef(null);
@@ -23,7 +25,7 @@ const signup = () => {
     const passwordInputRef = useRef(null);
     const confirmPasswordInputRef = useRef(null);
 
-    const handleSignup = () => {
+    const handleSignup = async () => {
         if (!name.trim()) {
             Toast.showWithGravity(
                 'Please enter your name',
@@ -64,7 +66,20 @@ const signup = () => {
             );
             confirmPasswordInputRef.current.focus();
             return;
+        }else{
+                setLoading(true);
+         try {
+            await signup(email, password, name, phone);
+            Toast.showWithGravity('Signup successful!', Toast.LONG, Toast.BOTTOM);
+            resetandNavigate('Home'); 
+        } catch (error) {
+            console.error("Error signing up:", error.message);
+            Toast.showWithGravity(`Error: ${error.message}`, Toast.LONG, Toast.BOTTOM);
+        } finally {
+        setLoading(false);
+        }    
         }
+
 
     }
 
@@ -77,8 +92,11 @@ const signup = () => {
                         ref={nameInputRef}
                         style={styles.input}
                         placeholder="Name"
+                        autoFocus={true}
+                        returnKeyType="next"
                         onChangeText={setName}
                         value={name}
+                        onSubmitEditing={() => emailInputRef.current?.focus()}
                     />
                     <TextInput
                         ref={emailInputRef}
@@ -87,24 +105,31 @@ const signup = () => {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         onChangeText={setEmail}
+                        returnKeyType="next"
                         value={email}
+                        onSubmitEditing={() => phoneInputRef.current?.focus()}
                     />
                     <TextInput
                         ref={phoneInputRef}
                         style={styles.input}
                         placeholder="Phone Number"
                         keyboardType="phone-pad"
+                        maxLength={10}
                         onChangeText={setPhone}
+                        returnKeyType="next"
                         value={phone}
+                        onSubmitEditing={() => passwordInputRef.current?.focus()}
                     />
                     <View style={styles.passwordContainer}>
                         <TextInput
                             style={styles.passwordInput}
                             ref={passwordInputRef}
                             placeholder="Password"
+                            returnKeyType="next"
                             secureTextEntry={!passwordVisible}
                             onChangeText={setPassword}
                             value={password}
+                            onSubmitEditing={() => confirmPassword.current?.focus()}
                         />
                         <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
                             <Ionicons
@@ -120,9 +145,12 @@ const signup = () => {
                             style={styles.passwordInput}
                             ref={confirmPasswordInputRef}
                             placeholder="Confirm Password"
+                            returnKeyType="done"
                             secureTextEntry={!confirmPasswordVisible}
-                            onChangeText={setPassword}
-                            value={password}
+                            onChangeText={setConfirmPassword}
+                            value={confirmPassword}
+                            blurOnSubmit={true}
+                            onSubmitEditing={handleSignup}
                         />
                         <TouchableOpacity onPress={() => setConfirmPasswordVisible(!confirmPasswordVisible)}>
                             <Ionicons
@@ -141,7 +169,14 @@ const signup = () => {
                     <TouchableOpacity onPress={() => push('Login')}>
                         <Text style={styles.signupText}>Already have an account? Log in</Text>
                     </TouchableOpacity>
+                   
                 </View>
+                 {loading && (
+                      <View style={styles.fullScreenLoader}>
+                        <ActivityIndicator size="large" color="#007BFF" />
+                      </View>
+                    )}
+                
             </View>
         </SafeAreaView>
     );
@@ -221,4 +256,16 @@ const styles = StyleSheet.create({
         fontSize: 14,
         textAlign: 'center',
     },
+      fullScreenLoader: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 100,
+},
+
 })

@@ -1,20 +1,24 @@
-import { View, Text, Dimensions, StyleSheet, TextInput, Platform, TouchableOpacity, ToastAndroid } from 'react-native'
-import React, { useRef, useState } from 'react'
+import { View, Text, Dimensions, StyleSheet, TextInput, Platform, TouchableOpacity, ToastAndroid, ActivityIndicator } from 'react-native'
+import React, { useContext, useRef, useState } from 'react'
 import Toast from 'react-native-simple-toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 const { width, height } = Dimensions.get('window');
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { push, resetandNavigate } from '../../utils/navigationUtils';
+import { AuthContext } from '../../context/authContext';
 
 const login = () => {
+  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
 
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email.trim()) {
       Toast.showWithGravity(
         'Please enter your email',
@@ -31,16 +35,21 @@ const login = () => {
       );
       passwordInputRef.current.focus();
       return;
+    }else{
+       setLoading(true);
+     try {
+      await login(email, password);
+      Toast.showWithGravity('Login successful!', Toast.LONG, Toast.BOTTOM);
+      resetandNavigate('Home'); 
+    } catch (error) {
+      console.error("Error during login:", error);
+      Toast.showWithGravity('Invalid credentials. Please try again.', Toast.LONG, Toast.BOTTOM); 
+            setLoading(false);
+    } finally {
+        setLoading(false);
     }
-    if (email === 'test@gmail.com' && password === '123456') {
-      resetandNavigate('Home');
-    } else {
-      Toast.showWithGravity(
-        'Invalid email or password',
-        Toast.LONG,
-        Toast.BOTTOM,
-      );
     }
+   
 
   };
 
@@ -59,6 +68,8 @@ const login = () => {
             autoCapitalize="none"
             onChangeText={setEmail}
             value={email}
+             returnKeyType="next"
+             onSubmitEditing={() => passwordInputRef.current?.focus()}
           />
 
           <View style={style.passwordContainer}>
@@ -69,6 +80,9 @@ const login = () => {
               secureTextEntry={!showPassword}
               onChangeText={setPassword}
               value={password}
+              returnKeyType="next"
+              blurOnSubmit={true}
+              onSubmitEditing={handleLogin}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
               <Ionicons
@@ -79,13 +93,20 @@ const login = () => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={style.button} onPress={handleLogin}>
+          <TouchableOpacity style={style.button} onPress={handleLogin}   >
             <Text style={style.buttonText}>Log In</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => push('SignUp')}>
           <Text style={style.signupText}>Don't have an account? Sign up</Text>
         </TouchableOpacity>
-        </View>
+          
+              </View>
+ {loading && (
+      <View style={style.fullScreenLoader}>
+        <ActivityIndicator size="large" color="#007BFF" />
+      </View>
+    )}
+
       </View>
     </SafeAreaView>
   );
@@ -165,4 +186,16 @@ const style = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
+ fullScreenLoader: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 100,
+},
+
 })

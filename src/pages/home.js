@@ -27,16 +27,23 @@ const home = () => {
   const [refreshing, setRefreshing] = useState(false);
   const { push } = useNavigation();
   const {logout} = useContext(AuthContext);
-
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     loadData();
   }, []);
 
 const loadData = async () => {
+  console.log("User UID:", user.uid);
   try {
     setLoading(true);
-    const snapshot = await firestore().collection('blogs').orderBy('createdAt', 'desc').get();
+  const snapshot = await firestore()
+  .collection('blogs')
+  .where('userId', '==', user.uid) 
+  .orderBy('createdAt', 'desc')
+  .get();
+
+console.log("Docs found:", snapshot.size);
     const blogList = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
